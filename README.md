@@ -38,6 +38,6 @@ When creating your render job provide this module as one of the `postrender` act
 
 ## Information
 
-- `output` is a path on your system where result will be saved to, can be either relative or absulte path.
+- `output` is a path on your system where result will be saved to, can be either relative or absoulte path.
 - `input` path of the video file you want to add video to, can be either relative or abosulte path. Defaults to current job output video file.
 - `watermark` is url to a watermark
