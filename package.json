@@ -1,0 +1,29 @@
+{
+  "name": "action-watermark",
+  "version": "1.0.4",
+  "description": "Action Module for adding watermark to encoded video using nexrenderer",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbdulBsit/action-watermark.git"
+  },
+  "keywords": [
+    "nexrenderer",
+    "video",
+    "watermark"
+  ],
+  "author": "Abdul Basit",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AbdulBsit/action-watermark/issues"
+  },
+  "homepage": "https://github.com/AbdulBsit/action-watermark#readme",
+  "dependencies": {
+    "fluent-ffmpeg": "^2.1.2",
+    "node-fetch": "^2.6.0",
+    "node-fetch-progress": "^1.0.2"
+  }
+}
