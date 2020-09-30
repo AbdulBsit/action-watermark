@@ -1,4 +1,4 @@
-var ffmpeg = require("fluent-ffmpeg");
+const ffmpeg = require("fluent-ffmpeg");
 const pkg = require("./package.json");
 const fetch = require("node-fetch");
 const nfp = require("node-fetch-progress");
@@ -68,7 +68,11 @@ const getBinary = (job, settings) => {
       });
   });
 };
-module.exports = async (job, settings, { input, watermark, output }) => {
+module.exports = async (
+  job,
+  settings,
+  { input, watermark, output, position = "center" }
+) => {
   let input = options.input || job.output;
   let output = options.output || "watermarked.mp4";
   if (!path.isAbsolute(input)) input = path.join(job.workpath, input);
@@ -84,7 +88,9 @@ module.exports = async (job, settings, { input, watermark, output }) => {
     .input(watermark)
     .videoCodec("libx264")
     .outputOptions("-pix_fmt yuv420p")
-    .complexFilter(["overlay=(main_w-overlay_w)/2:(main_h-overlay_h)/2"])
+    .complexFilter([
+      `overlay=${getOverlayByPosition(options.position || "center")}`,
+    ])
     .on("error", function (err) {
       settings.logger.log("add watermark fail: " + err.message);
     })
@@ -98,3 +104,18 @@ module.exports = async (job, settings, { input, watermark, output }) => {
     })
     .save(output);
 };
+
+function getOverlayByPosition(position) {
+  switch (position) {
+    case "top-left":
+      return "(0.05*main_w):(0.05*main_h)";
+    case "top-right":
+      return "(0.95*main_w-overlay_w):(0.05*main_h)";
+    case "bottom-left":
+      return "(0.05*main_w):(0.95*main_h-overlay_h)";
+    case "bottom-right":
+      return "(0.95*main_w-overlay_w):(0.95*main_h-overlay_h)";
+    default:
+      return "(main_w-overlay_w)/2:(main_h-overlay_h)/2";
+  }
+}
