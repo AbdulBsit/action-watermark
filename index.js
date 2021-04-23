@@ -8,9 +8,8 @@ const path = require("path");
 const getBinary = (job, settings) => {
   return new Promise((resolve, reject) => {
     const version = "b4.2.2";
-    const filename = `ffmpeg-${version}${
-      process.platform == "win32" ? ".exe" : ""
-    }`;
+    const filename = `ffmpeg-${version}${process.platform == "win32" ? ".exe" : ""
+      }`;
     const fileurl = `https://github.com/eugeneware/ffmpeg-static/releases/download/${version}/${process.platform}-x64`;
     const output = path.join(settings.workpath, filename);
 
@@ -39,17 +38,16 @@ const getBinary = (job, settings) => {
         res.ok
           ? res
           : Promise.reject({
-              reason: "Initial error downloading file",
-              meta: { fileurl, error: res.error },
-            })
+            reason: "Initial error downloading file",
+            meta: { fileurl, error: res.error },
+          })
       )
       .then((res) => {
         const progress = new nfp(res);
 
         progress.on("progress", (p) => {
           process.stdout.write(
-            `${Math.floor(p.progress * 100)}% - ${p.doneh}/${p.totalh} - ${
-              p.rateh
+            `${Math.floor(p.progress * 100)}% - ${p.doneh}/${p.totalh} - ${p.rateh
             } - ${p.etah}                       \r`
           );
         });
@@ -68,41 +66,54 @@ const getBinary = (job, settings) => {
       });
   });
 };
-module.exports = async (
+
+module.exports = function (
   job,
   settings,
-  { input, watermark, output, position = "center" }
-) => {
-  let input = options.input || job.output;
-  let output = options.output || "watermarked.mp4";
-  if (!path.isAbsolute(input)) input = path.join(job.workpath, input);
-  if (!path.isAbsolute(output)) output = path.join(job.workpath, output);
+  { input, watermark, output, onStart = () => console.log("Started action-watermark..."),
+    onComplete = () => console.log("Finished action-watermark..."), position = "center" }
+) {
+  onStart()
+  return new Promise((resolve, reject) => {
+    input = input || job.output
+    output = output || "watermarked.mp4";
+    if (!input) {
+      return reject("input missing, Failed to load input video")
+    }
+    if (!path.isAbsolute(input)) input = path.join(job.workpath, input);
+    if (!path.isAbsolute(watermark) && !watermark.startsWith('http')) watermark = path.join(job.workpath, watermark);
+    if (!path.isAbsolute(output)) output = path.join(job.workpath, output);
 
-  settings.logger.log(`[${job.uid}] starting action-watermark on [${input}] `);
+    settings.logger.log(
+      `[${job.uid}] starting action-watermark on [${input}] `
+    );
 
-  const path = await getBinary(job, settings);
-  ffmpeg.setFfmpegPath(path);
-
-  ffmpeg()
-    .input(input)
-    .input(watermark)
-    .videoCodec("libx264")
-    .outputOptions("-pix_fmt yuv420p")
-    .complexFilter([
-      `overlay=${getOverlayByPosition(options.position || "center")}`,
-    ])
-    .on("error", function (err) {
-      settings.logger.log("add watermark fail: " + err.message);
-    })
-    .on("progress", function (value) {
-      settings.logger.log(`In Progress..${value}%`);
-    })
-    .on("end", function () {
-      settings.logger.log("added watermark successfully");
-      job.output = output;
-      resolve(job);
-    })
-    .save(output);
+    getBinary(job, settings).then((p) => {
+      ffmpeg.setFfmpegPath(p);
+      ffmpeg()
+        .input(input)
+        .inputOptions([
+          `-filter_complex overlay=${getOverlayByPosition(position || "center")}`,
+        ])
+        .input(watermark)
+        .outputOptions(['-pix_fmt yuv420p', '-max_muxing_queue_size 1024'])
+        .on("error", function (err, stdout, stderr) {
+          settings.logger.log("add watermark fail: " + err.message);
+          settings.logger.log("watermark stderr: " + stderr);
+          onComplete()
+          reject(err);
+        })
+        .on("progress", function (value) {
+          settings.logger.log(`In Progress..`);
+        })
+        .on("end", function () {
+          settings.logger.log("added watermark successfully");
+          onComplete()
+          resolve(job);
+        })
+        .save(output);
+    });
+  });
 };
 
 function getOverlayByPosition(position) {
